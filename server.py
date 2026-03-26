@@ -631,6 +631,28 @@ def health():
     })
 
 
+# ============ DOM SNAPSHOT (for heatmap/replay with real page) ============
+@app.route('/api/dom', methods=['GET'])
+@require_auth
+def get_dom():
+    """Get DOM snapshot from most recent session for a URL"""
+    target_url = request.args.get('url', '')
+    if not target_url:
+        return jsonify({'error': 'url param required'}), 400
+
+    for s in iter_sessions(url_filter=target_url, hours=0):
+        dom = s.get('dom')
+        if dom and dom.get('html'):
+            return jsonify({
+                'html': dom['html'],
+                'stylesheets': dom.get('stylesheets', []),
+                'docWidth': dom.get('docWidth', 1440),
+                'docHeight': dom.get('docHeight', 3000),
+            })
+
+    return jsonify({'error': 'No DOM snapshot found', 'html': None}), 404
+
+
 # ============ MAIN ============
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
