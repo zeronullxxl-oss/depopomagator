@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: depositopomogator
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 2 -b 0.0.0.0:$PORT server:app --timeout 120
+    envVars:
+      - key: DP_API_TOKEN
+        generateValue: true
+      - key: DP_CORS_ORIGINS
+        value: "*"
+      - key: DP_SESSIONS_DIR
+        value: /opt/render/project/src/sessions
+      - key: DP_RATE_LIMIT
+        value: "120"
+      - key: PYTHON_VERSION
+        value: "3.11.0"
