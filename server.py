@@ -45,8 +45,19 @@ RATE_LIMIT_PER_MIN = int(os.environ.get('DP_RATE_LIMIT', '60'))
 MAX_PAYLOAD_BYTES = int(os.environ.get('DP_MAX_PAYLOAD', str(2 * 1024 * 1024)))  # 2MB
 
 SESSIONS_DIR.mkdir(exist_ok=True)
-CORS(app, origins=ALLOWED_ORIGINS)
+CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True)
 app.config['MAX_CONTENT_LENGTH'] = MAX_PAYLOAD_BYTES
+
+# Ensure /api/track always returns CORS headers
+@app.after_request
+def add_track_cors(response):
+    if request.path == '/api/track':
+        origin = request.headers.get('Origin', '*')
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    return response
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 log = logging.getLogger('depositopomogator')
@@ -138,11 +149,22 @@ def safe_read_session(session_file):
 @app.route('/api/track', methods=['POST', 'OPTIONS'])
 def track():
     """Receive tracking data from JS snippet. No auth required."""
+    origin = request.headers.get('Origin', '*')
+
     if request.method == 'OPTIONS':
-        return '', 204
+        resp = app.make_default_options_response()
+        resp.headers['Access-Control-Allow-Origin'] = origin
+        resp.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        resp.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        resp.headers['Access-Control-Allow-Credentials'] = 'true'
+        resp.headers['Access-Control-Max-Age'] = '86400'
+        return resp
 
     if not check_rate_limit():
-        return jsonify({'error': 'Rate limited'}), 429
+        resp = jsonify({'error': 'Rate limited'})
+        resp.headers['Access-Control-Allow-Origin'] = origin
+        resp.headers['Access-Control-Allow-Credentials'] = 'true'
+        return resp, 429
 
     try:
         data = request.get_json(force=True, silent=True)
