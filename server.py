@@ -571,6 +571,16 @@ def cleanup():
     return jsonify({'removed': removed})
 
 
+# ============ SERVE DASHBOARD ============
+@app.route('/', methods=['GET'])
+def serve_dashboard():
+    """Serve dashboard UI"""
+    dash_path = Path(__file__).parent / 'index.html'
+    if not dash_path.exists():
+        return 'Dashboard not found', 404
+    return app.response_class(response=dash_path.read_text(), mimetype='text/html')
+
+
 # ============ SERVE TRACKER.JS (no nginx needed on Render) ============
 @app.route('/tracker.js', methods=['GET'])
 def serve_tracker():

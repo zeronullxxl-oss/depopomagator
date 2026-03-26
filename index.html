@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DepositoPomogator</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#08090e;color:#e5e7eb;font-family:'Inter',-apple-system,sans-serif;min-height:100vh}
+.mono{font-family:'JetBrains Mono',monospace}
+.flex{display:flex}.col{flex-direction:column}.wrap{flex-wrap:wrap}.gap2{gap:8px}.gap3{gap:12px}.gap4{gap:16px}.gap5{gap:20px}
+.items-c{align-items:center}.just-between{justify-content:space-between}.just-center{justify-content:center}
+.f1{flex:1}.shrink0{flex-shrink:0}
+.card{background:rgba(255,255,255,0.025);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.05)}
+.card:hover{background:rgba(255,255,255,0.045)}
+.btn{border:none;border-radius:8px;padding:7px 16px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px}
+.btn-primary{background:linear-gradient(135deg,#6366f1,#a855f7);color:#fff}
+.btn-ghost{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#9ca3af}
+.input{width:100%;padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);color:#e5e7eb;font-size:14px;font-family:'JetBrains Mono',monospace;outline:none}
+.badge{font-size:9px;padding:2px 7px;border-radius:4px;font-weight:600;text-transform:uppercase}
+.badge-green{background:rgba(34,197,94,0.12);color:#4ade80}
+.badge-red{background:rgba(239,68,68,0.12);color:#f87171}
+.badge-yellow{background:rgba(245,158,11,0.12);color:#fbbf24}
+.badge-gray{background:rgba(107,114,128,0.12);color:#6b7280}
+.badge-blue{background:rgba(99,102,241,0.12);color:#818cf8}
+.label{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;font-weight:600}
+.big-num{font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;line-height:1}
+.sub{font-size:10px;color:#4b5563;margin-top:3px}
+.divider{border-top:1px solid rgba(255,255,255,0.05);padding:0}
+.header{border-bottom:1px solid rgba(255,255,255,0.05);padding:16px 28px}
+.content{padding:20px 28px;max-width:1100;margin:0 auto}
+.tab{padding:11px 14px;font-size:12px;background:transparent;border:none;cursor:pointer;border-bottom:2px solid transparent;color:#6b7280}
+.tab.active{color:#f3f4f6;font-weight:600;border-bottom-color:#6366f1}
+.stat{background:rgba(255,255,255,0.025);border-radius:10px;padding:14px 16px;border:1px solid rgba(255,255,255,0.05);flex:1;min-width:120px}
+.heat-bar{height:7px;background:rgba(255,255,255,0.04);border-radius:4px;overflow:hidden}
+.scroll-bar{height:12px;background:rgba(255,255,255,0.04);border-radius:3px;overflow:hidden}
+.form-bar{height:18px;background:rgba(255,255,255,0.04);border-radius:5px;overflow:hidden;display:flex}
+.issues{background:rgba(239,68,68,0.05);border-radius:12px;padding:16px;border:1px solid rgba(239,68,68,0.1)}
+.offer-card{border-radius:14px;padding:18px 22px;cursor:pointer;transition:background 0.15s}
+.offer-card:hover{background:rgba(255,255,255,0.045)!important}
+.spinner{width:32px;height:32px;border:3px solid rgba(99,102,241,0.2);border-top-color:#6366f1;border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:60px 20px;color:#4b5563}
+.sess-item{padding:9px 11px;border-radius:8px;cursor:pointer;border:1px solid transparent}
+.sess-item:hover{background:rgba(99,102,241,0.06)}
+.sess-item.active{background:rgba(99,102,241,0.1);border-color:rgba(99,102,241,0.25)}
+.el-row{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:6px}
+.el-row.bad{background:rgba(239,68,68,0.04);border-left:3px solid #ef4444}
+.el-row.even{background:rgba(255,255,255,0.015)}
+.tab-bar{border-bottom:1px solid rgba(255,255,255,0.05);padding:0 28px;display:flex;gap:4px}
+.sort-btn{border-radius:6px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:500;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#6b7280}
+.sort-btn.active{background:rgba(99,102,241,0.15);border-color:rgba(99,102,241,0.3);color:#818cf8}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const $ = (s, p) => (p || document).querySelector(s);
+const $$ = (s, p) => [...(p || document).querySelectorAll(s)];
+const h = (tag, attrs, ...children) => {
+  const el = document.createElement(tag);
+  if (attrs) Object.entries(attrs).forEach(([k, v]) => {
+    if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2).toLowerCase(), v);
+    else if (k === 'className') el.className = v;
+    else if (k === 'innerHTML') el.innerHTML = v;
+    else el.setAttribute(k, v);
+  });
+  children.flat(3).forEach(c => { if (c != null) el.append(typeof c === 'string' || typeof c === 'number' ? String(c) : c); });
+  return el;
+};
+
+const API = '';
+let TOKEN = localStorage.getItem('dp_token') || '';
+
+async function apiFetch(path) {
+  const res = await fetch(API + path, { headers: TOKEN ? { Authorization: 'Bearer ' + TOKEN } : {} });
+  if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
+  return res.json();
+}
+
+function fmtDur(ms) { const s = Math.floor(ms / 1000); return s < 60 ? s + 's' : Math.floor(s / 60) + 'm ' + (s % 60) + 's'; }
+
+function statCard(label, value, sub, color) {
+  return h('div', { className: 'stat' },
+    h('div', { className: 'label', style: { marginBottom: '6px', color: color || '#6b7280' } }, label),
+    h('div', { className: 'big-num', style: { color: '#f3f4f6' } }, String(value)),
+    sub ? h('div', { className: 'sub' }, sub) : null
+  );
+}
+
+// ==================== LOGIN ====================
+function renderLogin(err) {
+  const app = $('#app');
+  app.innerHTML = '';
+  app.append(
+    h('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' } },
+      h('div', { style: { width: '100%', maxWidth: '420px', padding: '32px' } },
+        h('div', { className: 'flex items-c gap3', style: { marginBottom: '32px' } },
+          h('div', { style: { width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg,#6366f1,#a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '20px' } }, '\u{1F525}'),
+          h('div', null,
+            h('h1', { style: { fontSize: '22px', fontWeight: '800', letterSpacing: '-0.03em' } }, 'DepositoPomogator'),
+            h('div', { style: { fontSize: '11px', color: '#4b5563' } }, '\u0410\u043D\u0430\u043B\u0438\u0442\u0438\u043A\u0430 \u041B\u0435\u043D\u0434\u043E\u0432')
+          )
+        ),
+        h('div', { className: 'card', style: { padding: '24px' } },
+          h('label', { className: 'label', style: { display: 'block', marginBottom: '6px' } }, 'API Token'),
+          h('input', { id: 'tokenInput', className: 'input', type: 'password', placeholder: 'your DP_API_TOKEN', value: TOKEN, style: { marginBottom: '20px' } }),
+          err ? h('div', { style: { fontSize: '12px', color: '#f87171', marginBottom: '12px', padding: '8px 12px', background: 'rgba(239,68,68,0.08)', borderRadius: '8px' } }, err) : null,
+          h('button', { className: 'btn btn-primary', style: { width: '100%', padding: '12px 0', fontSize: '14px', justifyContent: 'center' }, onClick: doLogin }, 'Connect')
+        ),
+        h('div', { style: { marginTop: '16px', fontSize: '11px', color: '#374151', textAlign: 'center' } }, 'Token = DP_API_TOKEN from Render env vars')
+      )
+    )
+  );
+}
+
+async function doLogin() {
+  TOKEN = $('#tokenInput').value.trim();
+  if (!TOKEN) return;
+  try {
+    const data = await apiFetch('/api/health');
+    if (data.status === 'ok') {
+      localStorage.setItem('dp_token', TOKEN);
+      renderOffers();
+    } else {
+      renderLogin('Unexpected response');
+    }
+  } catch (e) {
+    renderLogin(e.message);
+  }
+}
+
+// ==================== OFFERS ====================
+let currentSort = 'sessions';
+
+async function renderOffers() {
+  const app = $('#app');
+  app.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;padding:80px"><div class="spinner"></div></div>';
+
+  try {
+    const [stats, offersData] = await Promise.all([
+      apiFetch('/api/stats?hours=24'),
+      apiFetch('/api/offers?hours=24'),
+    ]);
+    const offers = offersData.offers || [];
+    app.innerHTML = '';
+
+    // Header
+    app.append(h('div', { className: 'header' },
+      h('div', { className: 'flex items-c just-between' },
+        h('div', { className: 'flex items-c gap3' },
+          h('div', { style: { width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg,#6366f1,#a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' } }, '\u{1F525}'),
+          h('div', null,
+            h('h1', { style: { fontSize: '20px', fontWeight: '800', letterSpacing: '-0.03em' } }, 'DepositoPomogator'),
+            h('span', { style: { fontSize: '10px', color: '#4b5563', letterSpacing: '0.08em', textTransform: 'uppercase' } }, '\u0410\u043D\u0430\u043B\u0438\u0442\u0438\u043A\u0430 \u041B\u0435\u043D\u0434\u043E\u0432')
+          )
+        ),
+        h('div', { className: 'flex items-c gap2' },
+          h('button', { className: 'btn btn-ghost', style: { fontSize: '11px' }, onClick: renderOffers }, '\u{21BB} Refresh'),
+          h('div', { style: { fontSize: '10px', color: '#22c55e', display: 'flex', alignItems: 'center', gap: '4px' } }, h('span', { className: 'dot', style: { background: '#22c55e' } }), ' LIVE'),
+          h('button', { className: 'btn btn-ghost', style: { fontSize: '11px' }, onClick: () => { localStorage.removeItem('dp_token'); TOKEN = ''; renderLogin(); } }, 'Logout')
+        )
+      )
+    ));
+
+    const content = h('div', { style: { maxWidth: '920px', margin: '0 auto', padding: '28px 20px' } });
+    app.append(content);
+
+    // Stats
+    content.append(h('div', { className: 'flex gap3 wrap', style: { marginBottom: '20px' } },
+      statCard('Sessions', (stats.totalSessions || 0).toLocaleString(), 'Last 24h'),
+      statCard('CR', (stats.conversionRate || 0) + '%', stats.conversions + ' conv'),
+      statCard('Rage', stats.rageClickSessions || 0, 'Frustrated'),
+    ));
+
+    // Sort + title
+    const sortRow = h('div', { className: 'flex items-c just-between wrap gap2', style: { marginBottom: '16px' } });
+    sortRow.append(h('h2', { style: { fontSize: '16px', fontWeight: '700' } }, offers.length > 0 ? offers.length + ' Offers' : 'No data yet'));
+    const sortBtns = h('div', { className: 'flex gap2' });
+    ['sessions', 'cr', 'rage'].forEach(s => {
+      const btn = h('button', { className: 'sort-btn' + (currentSort === s ? ' active' : ''), onClick: () => { currentSort = s; renderOffers(); } }, s === 'sessions' ? 'Sessions' : s === 'cr' ? 'CR%' : 'Rage');
+      sortBtns.append(btn);
+    });
+    sortRow.append(sortBtns);
+    content.append(sortRow);
+
+    if (offers.length === 0) {
+      content.append(h('div', { className: 'empty' },
+        h('div', { style: { fontSize: '32px', marginBottom: '12px' } }, '\u{1F4E1}'),
+        h('div', { style: { fontSize: '14px', color: '#6b7280' } }, 'Waiting for data...'),
+        h('div', { style: { fontSize: '12px', color: '#4b5563', marginTop: '8px' } }, 'Add tracker script to your landing pages. Sessions appear as traffic comes in.')
+      ));
+      return;
+    }
+
+    // Sort
+    const sorted = [...offers].sort((a, b) => currentSort === 'cr' ? b.conversionRate - a.conversionRate : currentSort === 'rage' ? b.rageClickSessions - a.rageClickSessions : b.totalSessions - a.totalSessions);
+
+    const list = h('div', { className: 'flex col gap3' });
+    sorted.forEach(o => {
+      const slug = o.url.split('/').filter(Boolean).pop() || o.url;
+      const rp = o.totalSessions > 0 ? (o.rageClickSessions / o.totalSessions * 100).toFixed(1) : '0';
+      const bad = o.conversionRate < 4 || parseFloat(rp) > 15;
+      const good = o.conversionRate > 5.5 && parseFloat(rp) < 10;
+
+      const card = h('div', {
+        className: 'offer-card',
+        style: { background: 'rgba(255,255,255,0.025)', border: '1px solid ' + (bad ? 'rgba(239,68,68,0.12)' : good ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)'), borderLeft: '4px solid ' + (bad ? '#ef4444' : good ? '#22c55e' : '#6366f1') },
+        onClick: () => renderOfferDetail(o)
+      });
+
+      card.append(h('div', { className: 'flex items-c just-between', style: { marginBottom: '12px' } },
+        h('div', null,
+          h('div', { style: { fontSize: '15px', fontWeight: '700', marginBottom: '2px' } }, o.title || slug),
+          h('div', { style: { fontSize: '10px', color: '#4b5563' }, className: 'mono' }, o.url.replace('https://', ''))
+        ),
+        h('span', { style: { color: '#4b5563', fontSize: '14px' } }, '\u203A')
+      ));
+
+      const metrics = h('div', { className: 'flex gap5 wrap' });
+      [
+        ['Sessions', o.totalSessions, '#e5e7eb'],
+        ['CR', o.conversionRate + '%', o.conversionRate >= 5 ? '#4ade80' : o.conversionRate >= 4 ? '#fbbf24' : '#f87171'],
+        ['Avg Time', o.avgDuration + 's', '#e5e7eb'],
+        ['Scroll', o.avgScrollDepth + '%', o.avgScrollDepth >= 65 ? '#4ade80' : '#fbbf24'],
+        ['Rage', o.rageClickSessions, parseFloat(rp) > 12 ? '#f87171' : '#e5e7eb'],
+        ['Conv', o.conversions, '#818cf8'],
+      ].forEach(([l, v, c]) => {
+        metrics.append(h('div', null,
+          h('div', { style: { fontSize: '10px', color: '#6b7280', marginBottom: '2px' } }, l),
+          h('div', { className: 'mono', style: { fontSize: '18px', fontWeight: '700', color: c } }, String(v))
+        ));
+      });
+      card.append(metrics);
+      list.append(card);
+    });
+    content.append(list);
+
+  } catch (e) {
+    app.innerHTML = '';
+    app.append(h('div', { style: { padding: '40px', textAlign: 'center', color: '#f87171' } }, 'Error: ' + e.message,
+      h('br'), h('button', { className: 'btn btn-ghost', style: { marginTop: '12px' }, onClick: renderOffers }, 'Retry')
+    ));
+  }
+}
+
+// ==================== OFFER DETAIL ====================
+async function renderOfferDetail(offer) {
+  const app = $('#app');
+  app.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;padding:80px"><div class="spinner"></div></div>';
+
+  const u = encodeURIComponent(offer.url);
+  try {
+    const [el, fm, hm, sess] = await Promise.all([
+      apiFetch('/api/elements?url=' + u + '&hours=24'),
+      apiFetch('/api/forms?url=' + u + '&hours=24'),
+      apiFetch('/api/heatmap?url=' + u + '&hours=24'),
+      apiFetch('/api/sessions?url=' + u + '&hours=24&per_page=50'),
+    ]);
+    showOfferDetail(offer, el, fm, hm, sess);
+  } catch (e) {
+    app.innerHTML = '';
+    app.append(h('div', { style: { padding: '40px', color: '#f87171' } }, 'Error: ' + e.message,
+      h('br'), h('button', { className: 'btn btn-ghost', style: { marginTop: '12px' }, onClick: () => renderOfferDetail(offer) }, 'Retry')
+    ));
+  }
+}
+
+function showOfferDetail(offer, elData, formData, heatData, sessData) {
+  const app = $('#app');
+  app.innerHTML = '';
+  const slug = offer.url.split('/').filter(Boolean).pop() || offer.url;
+  let currentTab = 'overview';
+
+  // Header
+  app.append(h('div', { className: 'header' },
+    h('div', { className: 'flex items-c gap4' },
+      h('button', { className: 'btn btn-ghost', onClick: renderOffers }, '\u2190 All'),
+      h('div', null,
+        h('div', { style: { fontSize: '16px', fontWeight: '700' } }, offer.title || slug),
+        h('div', { style: { fontSize: '10px', color: '#4b5563' }, className: 'mono' }, offer.url.replace('https://', ''))
+      )
+    )
+  ));
+
+  // Tabs
+  const tabBar = h('div', { className: 'tab-bar' });
+  const contentArea = h('div', { className: 'content' });
+  app.append(tabBar, contentArea);
+
+  function setTab(id) {
+    currentTab = id;
+    tabBar.innerHTML = '';
+    ['overview', 'elements', 'forms', 'sessions'].forEach(t => {
+      const labels = { overview: 'Overview', elements: 'Elements', forms: 'Form Funnel', sessions: 'Sessions' };
+      tabBar.append(h('button', { className: 'tab' + (currentTab === t ? ' active' : ''), onClick: () => setTab(t) }, labels[t]));
+    });
+    contentArea.innerHTML = '';
+
+    if (id === 'overview') renderOverview(contentArea, offer, elData);
+    else if (id === 'elements') renderElements(contentArea, elData);
+    else if (id === 'forms') renderForms(contentArea, formData);
+    else if (id === 'sessions') renderSessions(contentArea, sessData);
+  }
+  setTab('overview');
+}
+
+function renderOverview(container, offer, elData) {
+  // Stats
+  const stats = h('div', { className: 'flex gap3 wrap', style: { marginBottom: '20px' } });
+  stats.append(
+    statCard('Sessions', offer.totalSessions, '24h'),
+    statCard('CR', offer.conversionRate + '%', offer.conversions + ' conv'),
+    statCard('Avg Time', offer.avgDuration + 's'),
+    statCard('Scroll', offer.avgScrollDepth + '%'),
+    statCard('Rage', offer.rageClickSessions),
+  );
+  container.append(stats);
+
+  // Devices
+  if (offer.devices) {
+    const devCard = h('div', { className: 'card', style: { marginBottom: '16px' } });
+    devCard.append(h('div', { className: 'label', style: { marginBottom: '12px' } }, 'Devices'));
+    Object.entries(offer.devices).forEach(([d, c]) => {
+      const pct = offer.totalSessions > 0 ? (c / offer.totalSessions * 100).toFixed(0) : 0;
+      devCard.append(h('div', { className: 'flex items-c gap2', style: { marginBottom: '6px' } },
+        h('span', { style: { fontSize: '12px', flex: '1', textTransform: 'capitalize' } }, d),
+        h('span', { className: 'mono', style: { fontSize: '12px', fontWeight: '600', color: '#9ca3af' } }, pct + '%')
+      ));
+    });
+    container.append(devCard);
+  }
+
+  // Issues
+  const issues = (elData.elements || []).filter(el => el.rageClicks > el.clicks * 0.1 && el.rageClicks > 3);
+  if (issues.length > 0) {
+    const issueCard = h('div', { className: 'issues' });
+    issueCard.append(h('div', { style: { fontSize: '13px', fontWeight: '600', color: '#fca5a5', marginBottom: '10px' } }, '\u26A1 Issues (' + issues.length + ')'));
+    issues.slice(0, 5).forEach(el => {
+      const pct = el.clicks > 0 ? (el.rageClicks / el.clicks * 100).toFixed(0) : 0;
+      issueCard.append(h('div', { style: { fontSize: '12px', color: '#d1d5db', lineHeight: '1.6', marginBottom: '4px' } },
+        h('strong', { className: 'mono', style: { color: '#f87171' } }, el.selector),
+        ' \u2014 ' + el.rageClicks + ' rage (' + pct + '%)'
+      ));
+    });
+    container.append(issueCard);
+  }
+}
+
+function renderElements(container, elData) {
+  const elements = elData.elements || [];
+  const maxC = Math.max(...elements.map(e => e.clicks), 1);
+
+  container.append(h('div', { className: 'flex items-c just-between wrap gap2', style: { marginBottom: '16px' } },
+    h('h2', { style: { fontSize: '15px', fontWeight: '600' } }, 'Element Heat'),
+    h('div', { className: 'flex gap2' },
+      h('span', { className: 'badge badge-green' }, 'HOT'),
+      h('span', { className: 'badge badge-gray' }, 'COLD'),
+      h('span', { className: 'badge badge-red' }, 'FIX')
+    )
+  ));
+
+  const table = h('div', { className: 'card', style: { padding: '12px' } });
+
+  // Header
+  table.append(h('div', { className: 'el-row', style: { fontSize: '9px', color: '#4b5563', textTransform: 'uppercase' } },
+    h('span', { style: { flex: '2' } }, 'Element'),
+    h('span', { style: { width: '55px', textAlign: 'center' } }, 'Clicks'),
+    h('span', { style: { width: '45px', textAlign: 'center' } }, 'Rage'),
+    h('span', { style: { flex: '1' } }, 'Heat'),
+    h('span', { style: { width: '55px', textAlign: 'center' } }, 'Status')
+  ));
+
+  elements.forEach((el, i) => {
+    const heat = el.clicks / maxC;
+    const bad = el.rageClicks > el.clicks * 0.1 && el.rageClicks > 3;
+    const row = h('div', { className: 'el-row' + (bad ? ' bad' : i % 2 === 0 ? ' even' : '') });
+
+    row.append(
+      h('div', { style: { flex: '2', minWidth: '0', overflow: 'hidden' } },
+        h('div', { className: 'mono', style: { fontSize: '11px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, el.text || el.selector),
+        h('div', { className: 'mono', style: { fontSize: '9px', color: '#374151' } }, '<' + el.tag + '>')
+      ),
+      h('span', { className: 'mono', style: { width: '55px', textAlign: 'center', fontSize: '12px', fontWeight: '700' } }, String(el.clicks)),
+      h('span', { className: 'mono', style: { width: '45px', textAlign: 'center', fontSize: '12px', fontWeight: '700', color: el.rageClicks > 0 ? '#ef4444' : '#2a2d35' } }, el.rageClicks > 0 ? String(el.rageClicks) : '\u2014'),
+      h('div', { style: { flex: '1' } },
+        h('div', { className: 'heat-bar' },
+          h('div', { style: { width: (heat * 100) + '%', height: '100%', borderRadius: '4px', background: heat > 0.6 ? 'linear-gradient(90deg,#f59e0b,#ef4444)' : heat > 0.3 ? 'linear-gradient(90deg,#22c55e,#f59e0b)' : 'linear-gradient(90deg,#6366f1,#22c55e)' } })
+        )
+      ),
+      h('div', { style: { width: '55px', textAlign: 'center' } },
+        h('span', { className: 'badge ' + (bad ? 'badge-red' : heat > 0.5 ? 'badge-green' : 'badge-gray') }, bad ? 'FIX' : heat > 0.5 ? 'HOT' : 'COLD')
+      )
+    );
+    table.append(row);
+  });
+
+  if (elements.length === 0) table.append(h('div', { className: 'empty', style: { padding: '30px' } }, 'No element data yet'));
+  container.append(table);
+}
+
+function renderForms(container, formData) {
+  const fields = formData.fields || [];
+  container.append(h('h2', { style: { fontSize: '15px', fontWeight: '600', marginBottom: '16px' } }, 'Form Funnel'));
+
+  const wrap = h('div', { className: 'flex gap4 wrap' });
+  const left = h('div', { className: 'card', style: { flex: '1', minWidth: '300px', padding: '18px' } });
+  const right = h('div', { style: { width: '220px', flexShrink: '0' } });
+
+  fields.forEach(f => {
+    const fr = f.filled / Math.max(f.focuses, 1) * 100;
+    const dr = f.abandoned / Math.max(f.focuses, 1) * 100;
+    const field = h('div', { style: { marginBottom: '16px' } });
+    field.append(
+      h('div', { className: 'flex items-c just-between', style: { marginBottom: '4px' } },
+        h('div', { className: 'flex items-c gap2' },
+          h('span', { className: 'mono', style: { fontSize: '13px', fontWeight: '600' } }, f.field),
+          h('span', { style: { fontSize: '9px', color: '#4b5563', background: 'rgba(255,255,255,0.04)', padding: '1px 5px', borderRadius: '3px' } }, f.type)
+        ),
+        h('div', { className: 'flex gap3', style: { fontSize: '10px' } },
+          h('span', { style: { color: '#22c55e' } }, fr.toFixed(0) + '% filled'),
+          h('span', { style: { color: '#ef4444' } }, dr.toFixed(0) + '% drop')
+        )
+      ),
+      h('div', { className: 'form-bar' },
+        h('div', { style: { width: fr + '%', height: '100%', background: 'linear-gradient(90deg,#22c55e,#16a34a)' } }),
+        h('div', { style: { width: dr + '%', height: '100%', background: 'linear-gradient(90deg,#ef4444,#dc2626)' } })
+      ),
+      h('div', { className: 'flex just-between mono', style: { fontSize: '9px', color: '#374151', marginTop: '2px' } },
+        h('span', null, f.focuses + ' focuses'), h('span', null, f.filled + ' filled'), h('span', null, f.abandoned + ' drop')
+      )
+    );
+    left.append(field);
+  });
+  if (fields.length === 0) left.append(h('div', { className: 'empty', style: { padding: '30px' } }, 'No form data yet'));
+
+  const funnel = h('div', { className: 'card', style: { padding: '16px' } });
+  funnel.append(
+    h('div', { className: 'mono big-num', style: { color: '#818cf8' } }, String(formData.totalFormSessions || 0)),
+    h('div', { className: 'sub' }, 'started'),
+    h('div', { style: { margin: '6px 0', borderTop: '1px solid rgba(255,255,255,0.04)' } }),
+    h('div', { className: 'mono big-num', style: { color: '#22c55e' } }, String(formData.submissions || 0)),
+    h('div', { className: 'sub' }, 'submitted'),
+    h('div', { style: { margin: '6px 0', borderTop: '1px solid rgba(255,255,255,0.04)' } }),
+    h('div', { className: 'mono big-num', style: { color: '#ef4444' } }, String((formData.totalFormSessions || 0) - (formData.submissions || 0))),
+    h('div', { className: 'sub' }, 'dropped'),
+    h('div', { style: { margin: '8px 0', borderTop: '1px solid rgba(255,255,255,0.04)' } }),
+    h('div', { className: 'mono', style: { fontSize: '16px', fontWeight: '700', color: '#60a5fa' } }, (formData.completionRate || 0) + '%'),
+    h('div', { className: 'sub' }, 'completion rate')
+  );
+  right.append(funnel);
+
+  wrap.append(left, right);
+  container.append(wrap);
+}
+
+function renderSessions(container, sessData) {
+  const sessions = sessData.sessions || [];
+  container.append(h('h2', { style: { fontSize: '15px', fontWeight: '600', marginBottom: '16px' } }, 'Sessions (' + sessions.length + ')'));
+
+  if (sessions.length === 0) {
+    container.append(h('div', { className: 'empty' }, 'No sessions yet'));
+    return;
+  }
+
+  const list = h('div', { className: 'flex col gap2' });
+  sessions.forEach(s => {
+    const item = h('div', { className: 'card', style: { padding: '12px 16px', cursor: 'default' } });
+    item.append(
+      h('div', { className: 'flex items-c just-between', style: { marginBottom: '4px' } },
+        h('div', { className: 'flex items-c gap2' },
+          h('span', { style: { fontSize: '12px' } }, s.device === 'mobile' ? '\u{1F4F1}' : '\u{1F5A5}\u{FE0F}'),
+          h('span', { className: 'mono', style: { fontSize: '12px', fontWeight: '600' } }, fmtDur(s.duration)),
+          h('span', { style: { fontSize: '10px', color: '#4b5563' } }, s.ref || 'direct')
+        ),
+        h('div', { className: 'flex gap2' },
+          s.converted ? h('span', { className: 'badge badge-green' }, 'CONV') : null,
+          s.rageClicks > 0 ? h('span', { className: 'badge badge-red' }, 'RAGE') : null,
+        )
+      ),
+      h('div', { className: 'mono', style: { fontSize: '10px', color: '#4b5563' } },
+        'scroll ' + s.maxScroll + '% \u00B7 ' + s.clicks + ' clicks \u00B7 ' + s.eventCount + ' events'
+      )
+    );
+    list.append(item);
+  });
+  container.append(list);
+}
+
+// ==================== INIT ====================
+if (TOKEN) {
+  apiFetch('/api/health').then(d => {
+    if (d.status === 'ok') renderOffers();
+    else renderLogin();
+  }).catch(() => renderLogin());
+} else {
+  renderLogin();
+}
+</script>
+</body>
+</html>
