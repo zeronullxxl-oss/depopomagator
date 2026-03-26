@@ -42,7 +42,7 @@ ALLOWED_ORIGINS = os.environ.get('DP_CORS_ORIGINS', '*').split(',')
 API_TOKEN = os.environ.get('DP_API_TOKEN', '')  # Set in production!
 SESSIONS_DIR = Path(os.environ.get('DP_SESSIONS_DIR', './sessions'))
 RATE_LIMIT_PER_MIN = int(os.environ.get('DP_RATE_LIMIT', '60'))
-MAX_PAYLOAD_BYTES = int(os.environ.get('DP_MAX_PAYLOAD', str(2 * 1024 * 1024)))  # 2MB
+MAX_PAYLOAD_BYTES = int(os.environ.get('DP_MAX_PAYLOAD', str(20 * 1024 * 1024)))  # 20MB
 
 SESSIONS_DIR.mkdir(exist_ok=True)
 CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True)
@@ -183,6 +183,20 @@ def track():
                 session = safe_read_session(session_file)
                 session['dom'] = data['dom']
                 atomic_write_session(session_file, session)
+            else:
+                # Session not created yet — save DOM so it's not lost
+                session = {
+                    'sid': sid,
+                    'url': str(data.get('url', ''))[:2000],
+                    'dom': data['dom'],
+                    'events': [],
+                    'created': time.time(),
+                    'lastUpdate': time.time(),
+                    'duration': 0, 'maxScroll': 0, 'totalClicks': 0,
+                    'device': 'unknown', 'ua': '', 'ref': '', 'title': '',
+                    'ip': (request.headers.get('X-Forwarded-For', request.remote_addr) or '').split(',')[0].strip()[:45],
+                }
+                atomic_write_session(session_file, session)
             return jsonify({'ok': True}), 200
 
         if session_file.exists():
@@ -237,11 +251,23 @@ def track():
         return jsonify({'error': 'Internal error'}), 500
 
 
+# ============ HELPER: normalize URL (strip query params + trailing slash) ============
+def normalize_url(url):
+    try:
+        from urllib.parse import urlparse, urlunparse
+        parsed = urlparse(url)
+        return urlunparse((parsed.scheme, parsed.netloc, parsed.path.rstrip('/'), '', '', ''))
+    except Exception:
+        return url.split('?')[0].rstrip('/')
+
+
 # ============ HELPER: iterate sessions with filter ============
 def iter_sessions(url_filter='', device_filter='', hours=24, limit=None):
     """Generator that yields session summaries, applying filters."""
     cutoff = time.time() - (hours * 3600) if hours > 0 else 0
     count = 0
+    # Normalize filter URL once
+    norm_filter = normalize_url(url_filter) if url_filter else ''
 
     for f in sorted(SESSIONS_DIR.glob("dp_*.json"), key=os.path.getmtime, reverse=True):
         if limit and count >= limit:
@@ -254,8 +280,10 @@ def iter_sessions(url_filter='', device_filter='', hours=24, limit=None):
 
         if cutoff and s.get('created', 0) < cutoff:
             continue
-        if url_filter and url_filter not in s.get('url', ''):
-            continue
+        if norm_filter:
+            session_url = normalize_url(s.get('url', ''))
+            if norm_filter not in session_url:
+                continue
         if device_filter and s.get('device') != device_filter:
             continue
 
@@ -525,9 +553,20 @@ def get_offers():
         if not url:
             continue
         
-        if url not in offer_data:
-            offer_data[url] = {
-                'url': url,
+        # Normalize URL: strip query params (UTMs etc) and trailing slash
+        try:
+            from urllib.parse import urlparse, urlunparse
+            parsed = urlparse(url)
+            base_url = urlunparse((parsed.scheme, parsed.netloc, parsed.path.rstrip('/'), '', '', ''))
+        except Exception:
+            base_url = url.split('?')[0].rstrip('/')
+        
+        if not base_url:
+            continue
+        
+        if base_url not in offer_data:
+            offer_data[base_url] = {
+                'url': base_url,
                 'title': s.get('title', ''),
                 'totalSessions': 0,
                 'conversions': 0,
@@ -537,7 +576,7 @@ def get_offers():
                 'devices': defaultdict(int),
             }
         
-        od = offer_data[url]
+        od = offer_data[base_url]
         od['totalSessions'] += 1
         od['durations'].append(s.get('duration', 0))
         od['scrollDepths'].append(s.get('maxScroll', 0))

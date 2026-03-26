@@ -365,18 +365,19 @@
 
     var payload = buildPayload(toSend);
 
-    // DOM snapshot — send separately if too large
+    // Include DOM in the payload directly (server handles it)
     if (domSnapshot) {
-      var domPayload = {
-        sid: sanitizeSid(sessionId),
-        dom: domSnapshot
-      };
+      payload.dom = domSnapshot;
       domSnapshot = null;
-      // DOM snapshot always via XHR (can be large)
-      sendXHR(JSON.stringify(domPayload));
     }
 
-    send(payload);
+    // Always use XHR when DOM is included (can be large)
+    var data = JSON.stringify(payload);
+    if (payload.dom || data.length > BEACON_LIMIT) {
+      sendXHR(data);
+    } else {
+      send(payload);
+    }
   }
 
   // === Lifecycle ===
