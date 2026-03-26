@@ -148,7 +148,7 @@
       var html = clone.outerHTML;
       // Cap at 200KB to fit within sendBeacon limits when combined with events
       domSnapshot = {
-        html: html.substring(0, 200000),
+        html: html.substring(0, 2000000),
         stylesheets: styles,
         docWidth: document.documentElement.scrollWidth,
         docHeight: document.documentElement.scrollHeight

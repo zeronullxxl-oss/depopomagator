@@ -45,15 +45,19 @@ function stat(l,v,s,cl){return h('div',{className:'stat'},h('div',{className:'lb
 function loader(){return h('div',{className:'f ac jc',style:{padding:'80px'}},h('div',{className:'sp'}));}
 function bisect(a,t){let lo=0,hi=a.length;while(lo<hi){const m=(lo+hi)>>>1;if(a[m].t<=t)lo=m+1;else hi=m;}return lo;}
 
-// Build an iframe srcdoc from DOM snapshot — disables links, scripts, forms
-function buildSrcdoc(domHtml, stylesheets){
-  // Inject style to disable interactivity and fix positioning
-  const disableCSS='<style>*{pointer-events:none!important;user-select:none!important}a{color:inherit!important;text-decoration:inherit!important}body{margin:0!important;overflow:hidden!important}</style>';
-  // Remove any remaining script tags for safety
-  let html=domHtml.replace(/<script[\s\S]*?<\/script>/gi,'');
-  // Inject disable CSS at end of head or start of body
-  if(html.includes('</head>'))html=html.replace('</head>',disableCSS+'</head>');
-  else html=disableCSS+html;
+// Build HTML for iframe — strip scripts, disable interaction, keep styles/images
+function buildFrameHtml(domHtml){
+  // Remove scripts, CSP headers, tracking
+  html=html.replace(/<script[\s\S]*?<\/script>/gi,'');
+  // Remove Content-Security-Policy meta (blocks resources in iframe)
+  html=html.replace(/<meta[^>]*content-security-policy[^>]*>/gi,'');
+  // Remove event handlers from tags
+  html=html.replace(/\s(on\w+)="[^"]*"/gi,'');
+  // Inject CSS to disable interaction + base tag fallback
+  const inject='<style>*{pointer-events:none!important;user-select:none!important;cursor:default!important}a{color:inherit!important}body{margin:0!important}</style>';
+  if(html.includes('</head>'))html=html.replace('</head>',inject+'</head>');
+  else if(html.includes('<body'))html=html.replace('<body',inject+'<body');
+  else html=inject+html;
   return html;
 }
 
@@ -63,20 +67,24 @@ function pageFrame(domData, width, height, id){
   if(domData&&domData.html){
     const iframe=document.createElement('iframe');
     iframe.style.cssText='width:'+width+'px;height:'+height+'px;border:none;pointer-events:none;display:block;background:#fff';
-    iframe.sandbox='allow-same-origin';
+    // Use blob URL — no sandbox needed, scripts already stripped
+    const blob=new Blob([buildFrameHtml(domData.html)],{type:'text/html;charset=utf-8'});
+    iframe.src=URL.createObjectURL(blob);
     wrap.append(iframe);
-    // Set srcdoc after append for better rendering
-    setTimeout(()=>{
-      const doc=iframe.contentDocument||iframe.contentWindow.document;
-      doc.open();doc.write(buildSrcdoc(domData.html,domData.stylesheets||[]));doc.close();
-      // Scale to fit
-      const realW=domData.docWidth||1440;
-      const scale=width/realW;
-      doc.documentElement.style.transform='scale('+scale+')';
-      doc.documentElement.style.transformOrigin='top left';
-      doc.documentElement.style.width=realW+'px';
-      doc.documentElement.style.overflow='hidden';
-    },50);
+    // Scale to fit after load
+    iframe.onload=function(){
+      try{
+        const realW=domData.docWidth||1440;
+        const scale=width/realW;
+        const doc=iframe.contentDocument;
+        if(doc&&doc.documentElement){
+          doc.documentElement.style.transform='scale('+scale+')';
+          doc.documentElement.style.transformOrigin='top left';
+          doc.documentElement.style.width=realW+'px';
+          doc.documentElement.style.overflow='hidden';
+        }
+      }catch(e){console.log('Frame scale error:',e);}
+    };
   } else {
     // Fallback wireframe
     const pg=h('div',{className:'fake-page'});
